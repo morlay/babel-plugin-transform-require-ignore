@@ -1,0 +1,8 @@
+.DS_Store
+.idea/
+lib/
+coverage/
+__generated/
+node_modules/
+
+*.log
