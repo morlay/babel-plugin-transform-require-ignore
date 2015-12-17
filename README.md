@@ -10,7 +10,7 @@ Since https://nodejs.org/api/globals.html#globals_require_extensions deprecated.
 
 We have to find another way to ignore the extensions for webpack usage and make it work in node environment.
 
-Configure it for node, we could ignore the requirement when run test in node or build server render app.
+Configure it in `.babelrc` for node, we could ignore the requirement when run test in node or build server render app.
 
 Then we run babel with `BABEL_ENV=node` will active this plugin;
 
@@ -33,4 +33,19 @@ Then we run babel with `BABEL_ENV=node` will active this plugin;
 
 ```
 
+or use with `babel-register` in require-hooks
+
+```
+require('babel-register')({
+  'plugins': [
+    [
+      'babel-plugin-transform-require-ignore',
+      {
+        extensions: ['.scss']
+      }
+    ]
+  ]
+});
+
+```
 
