@@ -5,13 +5,6 @@ export default function () {
     return ext.charAt(0) === '.' ? ext : ('.' + ext);
   }
 
-  function findParentExpressionStatement(nodePath) {
-    if (nodePath.isExpressionStatement() || nodePath.isVariableDeclaration()) {
-      return nodePath;
-    }
-    return findParentExpressionStatement(nodePath.parentPath);
-  }
-
   return {
     visitor: {
       CallExpression: {
@@ -25,9 +18,11 @@ export default function () {
 
           if (callee.isIdentifier() && callee.equals('name', 'require')) {
             const arg = nodePath.get('arguments')[0];
-            if (arg && arg.isStringLiteral()) {
-              if (extensions.indexOf(path.extname(arg.node.value)) > -1) {
-                findParentExpressionStatement(nodePath).remove();
+            if (arg && arg.isStringLiteral() && extensions.indexOf(path.extname(arg.node.value)) > -1) {
+              if (nodePath.parentPath.isVariableDeclarator()) {
+                throw new Error(`${arg.node.value} should not be assign to variable.`);
+              } else {
+                nodePath.remove();
               }
             }
           }

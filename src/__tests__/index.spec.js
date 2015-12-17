@@ -1,3 +1,4 @@
+import { expect } from 'chai';
 import babelEql from './helpers/babelEql';
 import babelPluginTransformRequireIgnore from '../.';
 
@@ -22,30 +23,30 @@ describe(__filename, () => {
       `);
     });
 
-    it('should remove require call expression in assignment expression', () => {
-      babelEql(`
-        var a = require('./index.less');
-        require('babel');
-      `, {
-        plugins: [
-          [
-            babelPluginTransformRequireIgnore,
-            {
-              extensions: ['.less']
-            }
+    it('should not process when remove require call expression in assignment expression', () => {
+      expect(() => {
+        const source = `
+          var { a } = require('./index.less');
+          require('babel');
+        `;
+        babelEql(source, {
+          plugins: [
+            [
+              babelPluginTransformRequireIgnore,
+              {
+                extensions: ['.less']
+              }
+            ]
           ]
-        ]
-      }).eql(`
-      require('babel');
-      `);
+        });
+      }).to.throw('./index.less should not be assign to variable.');
     });
 
     it('should remove require call expression in other block', () => {
       babelEql(`
         (function (){
            require('./index.sass');
-           var a = require('./index.less');
-           var { test } = require('./index.less');
+           require('./index.less');
            require('babel');
         })();
       `, {

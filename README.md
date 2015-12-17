@@ -49,3 +49,11 @@ require('babel-register')({
 
 ```
 
+Or with cli like other plugin used.
+
+Notice:
+
+Only ignore `import './some.less';` or `require('./some.less');`
+
+If assign to some variable, means that may use css-module,
+please use https://github.com/css-modules/css-modules-require-hook instead.
