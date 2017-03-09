@@ -1,195 +1,115 @@
-import { expect } from 'chai';
-import babelEql from './helpers/babelEql';
+import { test } from 'ava';
+import * as babel from 'babel-core';
 import babelPluginTransformRequireIgnore from '../.';
 
-describe(__filename, () => {
-  context('single use', () => {
-    it('should remove require call expression by extensions', () => {
-      babelEql(`
-        require('./index.less');
-        require('./index.sass');
-        require('babel');
-      `, {
-        plugins: [
-          [
-            babelPluginTransformRequireIgnore,
-            {
-              extensions: ['.less', 'sass']
-            }
-          ]
-        ]
-      }).eql(`
-      require('babel');
-      `);
-    });
+function trimLines(str) {
+  return str.replace(/^\n+|\n+$/, '').replace(/\n+/g, '\n');
+}
 
-    it('should remove import call expression by extensions', () => {
-      babelEql(`
-        import './index.less';
-        import * as babel from 'babel';
-      `, {
-        plugins: [
-          [
-            babelPluginTransformRequireIgnore,
-            {
-              extensions: ['.less', '.sass']
-            }
-          ]
-        ]
-      }).eql(`
-        import * as babel from 'babel';
-      `);
-    });
+const babelAssign = (babelOptions = {}) => (t, expected, input) => {
+  const code = babel.transform(input, babelOptions).code;
+  t.is(trimLines(code), trimLines(babel.transform(expected, babelOptions).code));
+};
 
-    it('should not process when remove require call expression in assignment expression', () => {
-      expect(() => {
-        const source = `
-          var { a } = require('./index.less');
-          require('babel');
-        `;
-        babelEql(source, {
-          plugins: [
-            [
-              babelPluginTransformRequireIgnore,
-              {
-                extensions: ['.less']
-              }
-            ]
-          ]
-        });
-      }).to.throw('./index.less should not be assign to variable.');
-    });
+const babelThrow = (babelOptions = {}) => (t, input, msg) => {
+  const error = t.throws((() => {
+    babel.transform(input, babelOptions);
+  }));
+  t.true(error.toString().includes(msg));
+};
 
-    it('should not process when remove import expression in default imports', () => {
-      expect(() => {
-        const source = `
-          import myCss from './index.less';
-          import * as babel from 'babel';
-        `;
-        babelEql(source, {
-          plugins: [
-            [
-              babelPluginTransformRequireIgnore,
-              {
-                extensions: ['.less']
-              }
-            ]
-          ]
-        });
-      }).to.throw('./index.less should not be imported using default imports.');
-    });
-
-    it('should not process when remove import expression in named imports', () => {
-      expect(() => {
-        const source = `
-          import { myCss } from './index.less';
-          import * as babel from 'babel';
-        `;
-        babelEql(source, {
-          plugins: [
-            [
-              babelPluginTransformRequireIgnore,
-              {
-                extensions: ['.less']
-              }
-            ]
-          ]
-        });
-      }).to.throw('./index.less should not be imported using named imports.');
-    });
-
-    it('should not process when remove import expression in namespace imports', () => {
-      expect(() => {
-        const source = `
-          import * as myCss from './index.less';
-          import * as babel from 'babel';
-        `;
-        babelEql(source, {
-          plugins: [
-            [
-              babelPluginTransformRequireIgnore,
-              {
-                extensions: ['.less']
-              }
-            ]
-          ]
-        });
-      }).to.throw('./index.less should not be imported using namespace imports.');
-    });
-
-    it('should remove require call expression in other block', () => {
-      babelEql(`
-        (function (){
-           require('./index.sass');
-           require('./index.less');
-           require('babel');
-        })();
-      `, {
-        plugins: [
-          [
-            babelPluginTransformRequireIgnore,
-            {
-              extensions: ['.less', '.sass']
-            }
-          ]
-        ]
-      }).eql(`
-       (function (){
-          require('babel');
-        })();
-      `);
-    });
-  });
-
-  context('with babel-preset-es2015', () => {
-    it('should remove require call expression', () => {
-      babelEql(`
-        require('./index.sass');
-        require('babel');
-      `, {
-        presets: [
-          'es2015'
-        ],
-        plugins: [
-          [
-            babelPluginTransformRequireIgnore,
-            {
-              extensions: ['.less', '.sass']
-            }
-          ]
-        ]
-      }).eql(`
-        require('babel');
-      `, {
-        presets: [
-          'es2015'
-        ]
-      });
-    });
-
-    it('should remove require call expression after import transformed', () => {
-      babelEql(`
-        import './index.less';
-        import * as babel from 'babel';
-      `, {
-        presets: [
-          'es2015'
-        ],
-        plugins: [
-          [
-            babelPluginTransformRequireIgnore,
-            {
-              extensions: ['.less', '.sass']
-            }
-          ]
-        ]
-      }).eql(`
-        import * as babel from 'babel';
-      `, {
-        presets: [
-          'es2015'
-        ]
-      });
-    });
-  });
+const simpleBabelAssign = babelAssign({
+  plugins: [
+    [
+      babelPluginTransformRequireIgnore,
+      {
+        extensions: ['.less', 'sass'],
+      },
+    ],
+  ],
 });
+
+const withES2015BabelAssign = babelAssign({
+  presets: [
+    'es2015',
+  ],
+  plugins: [
+    [
+      babelPluginTransformRequireIgnore,
+      {
+        extensions: ['.less', 'sass'],
+      },
+    ],
+  ],
+});
+
+const simpleBabelThrow = babelThrow({
+  plugins: [
+    [
+      babelPluginTransformRequireIgnore,
+      {
+        extensions: ['.less', 'sass'],
+      },
+    ],
+  ],
+});
+
+test('should remove require call expression by extensions', simpleBabelAssign, `
+require('babel');
+`, `
+require('./index.less');
+require('./index.sass');
+require('babel');
+`);
+
+test('should remove import call expression by extensions', simpleBabelAssign, `
+import './index.less';
+import * as babel from 'babel';`, `
+import * as babel from 'babel';
+`);
+
+test('should not process when remove require call expression in assignment expression', simpleBabelThrow, `
+var { a } = require('./index.less');
+require('babel');
+`, './index.less should not be assign to variable.');
+
+test('should not process when remove import expression in default imports', simpleBabelThrow, `
+import myCss from './index.less';
+import * as babel from 'babel';
+`, './index.less should not be imported using default imports.');
+
+test('should not process when remove import expression in named imports', simpleBabelThrow, `
+import { myCss } from './index.less';
+import * as babel from 'babel';
+`, './index.less should not be imported using named imports.');
+
+test('should not process when remove import expression in namespace imports', simpleBabelThrow, `
+import * as myCss from './index.less';
+import * as babel from 'babel';
+`, './index.less should not be imported using namespace imports.');
+
+test('should remove require call expression in other block', simpleBabelAssign, `
+(function (){
+  require('./index.sass');
+  require('./index.less');
+  require('babel');
+})();
+`, `
+(function (){
+  require('babel');
+})();
+`);
+
+test('should remove require call expression', withES2015BabelAssign, `
+  require('./index.sass');
+  require('babel');
+`, `
+  require('babel');
+`);
+
+test('should remove require call expression after import transformed', withES2015BabelAssign, `
+  import './index.less';
+  import * as babel from 'babel';
+`, `
+  import * as babel from 'babel';
+`);
