@@ -23,7 +23,7 @@ const simpleBabelAssign = babelAssign({
     [
       babelPluginTransformRequireIgnore,
       {
-        extensions: ['.less', 'sass'],
+        extensions: ['.css', '.less', 'sass'],
       },
     ],
   ],
@@ -57,6 +57,7 @@ const simpleBabelThrow = babelThrow({
 test('should remove require call expression by extensions', simpleBabelAssign, `
 require('babel');
 `, `
+require('./index.css');
 require('./index.less');
 require('./index.sass');
 require('babel');
@@ -64,6 +65,7 @@ require('babel');
 
 test('should remove import call expression by extensions', simpleBabelAssign, `
 import './index.less';
+import './index.css';
 import * as babel from 'babel';`, `
 import * as babel from 'babel';
 `);
