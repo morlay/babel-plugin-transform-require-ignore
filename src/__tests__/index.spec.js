@@ -73,7 +73,7 @@ import * as babel from 'babel';
 test('should not process when remove require call expression in assignment expression', simpleBabelThrow, `
 var { a } = require('./index.less');
 require('babel');
-`, './index.less should not be assign to variable.');
+`, './index.less should not be assigned to variable.');
 
 test('should not process when remove import expression in default imports', simpleBabelThrow, `
 import myCss from './index.less';
