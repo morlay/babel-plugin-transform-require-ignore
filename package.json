@@ -1,6 +1,6 @@
 {
   "name": "babel-plugin-transform-require-ignore",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "ignore the required file by extension type",
   "main": "lib/index.js",
   "ava": {
