@@ -2,7 +2,7 @@ import path from 'path';
 
 export default function () {
   function extFix(ext) {
-    return ext.charAt(0) === '.' ? ext : (`.${ext}`);
+    return ext.charAt(0) === '.' ? ext : `.${ext}`;
   }
 
   return {
@@ -10,6 +10,10 @@ export default function () {
       CallExpression: {
         enter(nodePath, { opts }) {
           const extensionsInput = [].concat(opts.extensions || []);
+          const excludePatterns = []
+            .concat(opts.exclude || [])
+            .map(pattern => new RegExp(pattern, 'i'));
+
           if (extensionsInput.length === 0) {
             return;
           }
@@ -18,10 +22,18 @@ export default function () {
 
           if (callee.isIdentifier() && callee.equals('name', 'require')) {
             const arg = nodePath.get('arguments')[0];
-            if (arg && arg.isStringLiteral() &&
-              extensions.indexOf(path.extname(arg.node.value)) > -1) {
+            if (
+              arg &&
+              arg.isStringLiteral() &&
+              extensions.indexOf(path.extname(arg.node.value)) > -1 &&
+              !excludePatterns.some(pattern =>
+                pattern.test(nodePath.node.source.value),
+              )
+            ) {
               if (nodePath.parentPath.isVariableDeclarator()) {
-                throw new Error(`${arg.node.value} should not be assigned to variable.`);
+                throw new Error(
+                  `${arg.node.value} should not be assigned to variable.`,
+                );
               } else {
                 nodePath.remove();
               }
@@ -33,26 +45,40 @@ export default function () {
       ImportDeclaration: {
         enter(nodePath, { opts }) {
           const extensionsInput = [].concat(opts.extensions || []);
+          const excludePatterns = []
+            .concat(opts.exclude || [])
+            .map(pattern => new RegExp(pattern, 'i'));
 
           if (extensionsInput.length === 0) {
             return;
           }
           const extensions = extensionsInput.map(extFix);
 
-          if (extensions.indexOf(path.extname(nodePath.node.source.value)) > -1) {
+          if (
+            extensions.indexOf(path.extname(nodePath.node.source.value)) > -1 &&
+            !excludePatterns.some(pattern =>
+              pattern.test(nodePath.node.source.value),
+            )
+          ) {
             const specifiers = nodePath.get('specifiers');
 
             if (specifiers.length) {
               const specifier = specifiers[specifiers.length - 1];
 
               if (specifier.isImportDefaultSpecifier()) {
-                throw new Error(`${nodePath.node.source.value} should not be imported using default imports.`);
+                throw new Error(
+                  `${nodePath.node.source.value} should not be imported using default imports.`,
+                );
               }
               if (specifier.isImportSpecifier()) {
-                throw new Error(`${nodePath.node.source.value} should not be imported using named imports.`);
+                throw new Error(
+                  `${nodePath.node.source.value} should not be imported using named imports.`,
+                );
               }
               if (specifier.isImportNamespaceSpecifier()) {
-                throw new Error(`${nodePath.node.source.value} should not be imported using namespace imports.`);
+                throw new Error(
+                  `${nodePath.node.source.value} should not be imported using namespace imports.`,
+                );
               }
             }
 
